@@ -1,0 +1,80 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f0f0f0;
+}
+
+.centered-content {
+    text-align: center;
+    margin: 0 auto;
+}
+
+/* Asegura que la tabla se centre correctamente */
+.centered-content table {
+    margin: 0 auto;
+    border-collapse: collapse;
+    width: 90%; /* Ajusta este valor según tus necesidades */
+}
+
+.centered-content table, th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+}
+
+.centered-content th {
+    padding-top: 12px;
+    padding-bottom: 12px;
+    text-align: left;
+    background-color: #4CAF50;
+    color: white;
+}
+
+.payment-form {
+    display: inline-block;
+    margin-top: 20px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.name-selector {
+    width: 200px;
+    height: 40px;
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+.submit-button, .action-button {
+    background-color: #4CAF50; /* Verde */
+    color: white;
+    padding: 10px 24px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.submit-button:hover, .action-button:hover {
+    background-color: #45a049;
+}
+
+@keyframes scrollText {
+    0% { transform: translateX(420%); }
+    100% { transform: translateX(-100%); }
+}
+
+.scrolling-text {
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+.scrolling-text:before {
+    content: "Familia YouTube Premium Abril 2024 - Marzo 2025";
+    position: absolute;
+    animation: scrollText 10s linear infinite;
+    display: block;
+}
