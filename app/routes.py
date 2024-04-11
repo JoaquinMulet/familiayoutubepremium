@@ -1,108 +1,79 @@
-from flask import Blueprint, render_template, request, redirect, url_for
-from flask import request, redirect, url_for, flash
-from .models import User, FinancialEvent, db
+from flask import Blueprint, render_template, request, redirect, url_for, flash
 from datetime import datetime, timedelta
-
+from .models import add_user, get_users, delete_user, get_financial_events, add_financial_event, delete_financial_event, update_payment_status, reset_payment_status
 
 bp = Blueprint('main', __name__)
 
 @bp.route('/')
 def index():
     today = datetime.now()
-    
-    # Obtener la lista de usuarios y contar cuántos han pagado
-    users = User.query.order_by(User.name).all()
-    users_paid = User.query.filter_by(paid=True).count()
-
-    # Calcular el total de la caja basado en el número de usuarios que han pagado
+    users = get_users()
+    users_paid = sum(1 for user in users if user['paid'])
     total_caja = users_paid * 24000
     
-    # Obtener todos los eventos financieros relacionados con intereses
-    interests = FinancialEvent.query.filter_by(event_type='intereses').all()
-    
-    # Calcular el total de intereses ganados
-    total_interests = sum(event.amount for event in interests)
+    interests = get_financial_events()
+    total_interests = sum(event['amount'] for event in interests)
 
-    # Calcular descuentos desde Abril 2024 hasta hoy, cada 5 de mes
+    # Calculating discounts
     start_date = datetime(2024, 4, 5)
     discount_amount = 0
     while start_date <= today:
         if start_date.day == 5:
             discount_amount += 12000
         start_date += timedelta(days=1)
-    
-    # Restar los descuentos y sumar los intereses al total de la caja
-    total_caja -= discount_amount
-    total_caja += total_interests
+
+    total_caja = total_caja - discount_amount + total_interests
 
     return render_template('index.html', users=users, total_caja=total_caja)
 
-
-@bp.route('/mark-payment', methods=['POST'])
-def mark_payment():
-    user_id = request.form.get('user_id')
-    paid = 'paid' in request.form
-
-    user = User.query.get(user_id)
-    if user:
-        user.paid = paid
-        if paid:
-            user.payment_date = datetime.utcnow()
-        db.session.commit()
-    
-    return redirect(url_for('main.index'))
-
 @bp.route('/admin')
 def admin():
-    financial_events = FinancialEvent.query.filter_by(event_type='intereses').order_by(FinancialEvent.date.desc()).all()
-    users = User.query.all()
+    financial_events = get_financial_events()
+    users = get_users()
     return render_template('admin.html', users=users, financial_events=financial_events)
 
 @bp.route('/add-user', methods=['POST'])
-def add_user():
+def add_user_route():
     name = request.form['name']
     if name:
-        new_user = User(name=name, paid=False, payment_date=None)
-        db.session.add(new_user)
-        db.session.commit()
+        add_user(name)
         flash('New member added successfully!', 'success')
     else:
         flash('Failed to add new member. Name is required.', 'danger')
     return redirect(url_for('main.admin'))
 
 @bp.route('/delete-user/<int:user_id>', methods=['POST'])
-def delete_user(user_id):
-    user = User.query.get_or_404(user_id)
-    db.session.delete(user)
-    db.session.commit()
+def delete_user_route(user_id):
+    delete_user(user_id)
     flash('Member deleted successfully!', 'success')
     return redirect(url_for('main.admin'))
 
-@bp.route('/reset-payment/<int:user_id>', methods=['POST'])
-def reset_payment(user_id):
-    user = User.query.get_or_404(user_id)
-    user.paid = False
-    user.payment_date = None
-    db.session.commit()
-    flash('Payment status reset successfully!', 'success')
-    return redirect(url_for('main.admin'))
+@bp.route('/mark-payment', methods=['POST'])
+def mark_payment():
+    user_id = request.form.get('user_id')
+    paid = 'paid' in request.form
+    update_payment_status(user_id, paid)
+    flash('Payment status updated successfully!', 'success')
+    return redirect(url_for('main.index'))
 
 @bp.route('/add-interests', methods=['POST'])
 def add_interests():
     amount = request.form.get('amount', type=int)
     if amount:
-        new_event = FinancialEvent(event_type='intereses', amount=amount, date=datetime.utcnow())
-        db.session.add(new_event)
-        db.session.commit()
-        flash('Intereses añadidos exitosamente.', 'success')
+        add_financial_event(amount)
+        flash('Interests added successfully.', 'success')
     else:
-        flash('Error al añadir intereses. Por favor, verifica el monto ingresado.', 'danger')
+        flash('Error adding interests. Please verify the amount entered.', 'danger')
     return redirect(url_for('main.admin'))
 
 @bp.route('/delete-interest/<int:event_id>', methods=['POST'])
 def delete_interest(event_id):
-    event = FinancialEvent.query.get_or_404(event_id)
-    db.session.delete(event)
-    db.session.commit()
-    flash('Interés eliminado exitosamente.', 'success')
+    delete_financial_event(event_id)
+    flash('Interest deleted successfully.', 'success')
+    return redirect(url_for('main.admin'))
+
+@bp.route('/reset-payment/<int:user_id>', methods=['POST'])
+def reset_payment(user_id):
+    reset_payment_status(user_id)
+    flash('Payment status reset successfully!', 'success')
     return redirect(url_for('main.admin'))
